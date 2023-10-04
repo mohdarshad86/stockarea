@@ -33,70 +33,52 @@ const getAllWarehouse = async (req, res) => {
     }
 };
 
-const getWarehouseByName = async (req, res) => {
+const updateWarehouse = async (req, res) => {
     try {
-        const { name, code } = req.query;
+        const warehouseId = req.params.id; 
 
-        if (!name && !code) {
-            return res.status(400).send({ message: 'Please provide a warehouse name or code for searching.' });
-        }
+        const { name, code, city, space_available, type, cluster,is_live,is_registered } = req.body;
 
-        let warehouses;
+        const updateFields = {};
 
         if (name) {
-            warehouses = await Warehouse.find({ name: { $regex: name, $options: 'i' } });
-
-            if (warehouses.length === 0) {
-                return res.status(404).send({ message: 'No warehouses found with the provided name.' });
-            }
+            updateFields.name = name;
         }
-
         if (code) {
-            warehouses = await Warehouse.find({ code: { $regex: code, $options: 'i' } });
-
-            if (warehouses.length === 0) {
-                return res.status(404).send({ message: 'No warehouses found with the provided code.' });
-            }
+            updateFields.code = code;
         }
-
-        return res.status(200).send(warehouses);
-    } catch (error) {
-        return res.status(500).send({ error: error.message });
-    }
-};
-
-const filterWarehouse = async (req, res) => {
-    try {
-
-        const { city, cluster, space_available } = req.query;
-
-        const filterQuery = {};
-
         if (city) {
-            filterQuery.city = { $regex: city, $options: 'i' };
+            updateFields.city = city;
         }
-
-        if (cluster) {
-            filterQuery.cluster = { $regex: cluster, $options: 'i' };
-        }
-
         if (space_available) {
-            //minimum available space
-            filterQuery.space_available = { $gte: parseInt(space_available) };
+            updateFields.space_available = space_available;
+        }
+        if (type) {
+            updateFields.type = type;
+        }
+        if (cluster) {
+            updateFields.cluster = cluster;
+        }
+        updateFields.is_live = is_live;
+        updateFields.is_registered = is_registered;
+
+
+        const updatedWarehouse = await Warehouse.findOneAndUpdate(
+            { _id: warehouseId },
+            { $set: updateFields },
+            { new: true } 
+        );
+
+        if (!updatedWarehouse) {
+            return res.status(404).send({ message: 'Warehouse not found' });
         }
 
-        const filteredWarehouses = await Warehouse.find(filterQuery);
-
-        if (filteredWarehouses.length === 0) {
-            return res.status(404).send({ message: 'No warehouses found with the provided filter criteria.' });
-        }
-
-        return res.status(200).send(filteredWarehouses);
+        return res.status(200).send({ status: true, message: 'Warehouse updated successfully', data: updatedWarehouse });
     } catch (error) {
-        return res.status(500).send({ error: error.message });
+        console.log(error.message);
+        return res.status(500).send({ status: false, error: 'Internal server error' });
     }
 };
 
 
-
-module.exports = { addWarehouse, getAllWarehouse, getWarehouseByName, filterWarehouse }
+module.exports = { addWarehouse, getAllWarehouse, updateWarehouse }
